@@ -1,0 +1,43 @@
+version: '3.9'
+
+services:
+  web:
+    build:
+      context: .
+      args:
+        ENV: ${ENV}
+    ports:
+      - "8000:8000"
+    volumes:
+      - .:/app
+      - static_volume:/app/static
+    env_file:
+      - .env
+    depends_on:
+      - db
+
+  nginx:
+    image: nginx:1.21
+    ports:
+      - "80:80"
+    volumes:
+      - static_volume:/app/static
+      - ./nginx:/etc/nginx/conf.d
+    depends_on:
+      - web
+    # Só roda se for produção
+    deploy:
+      replicas: ${NGINX_REPLICAS:-0}
+
+  db:
+    image: postgres:15
+    environment:
+      POSTGRES_DB: controlPlus
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: admin
+    volumes:
+      - postgres_data:/var/lib/postgresql/data/
+
+volumes:
+  static_volume:
+  postgres_data:
