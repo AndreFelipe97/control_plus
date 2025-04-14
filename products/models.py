@@ -46,3 +46,46 @@ class Product(models.Model):
 
     def __str__(self):
         return self.name
+
+
+class Supplier(models.Model):
+    name = models.CharField(max_length=100)
+    cnpj = models.CharField(max_length=18, unique=True, blank=True, null=True)
+    phone = models.CharField(max_length=20, blank=True, null=True)
+    email = models.EmailField(blank=True, null=True)
+    address = models.CharField(max_length=255, blank=True, null=True)
+    city = models.CharField(max_length=100, blank=True, null=True)
+    state = models.CharField(max_length=2, blank=True, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = 'Fornecedor'
+        verbose_name_plural = 'Fornecedores'
+        ordering = ['name']
+
+    def __str__(self):
+        return self.name
+
+
+class StockMovementType(models.TextChoices):
+    ENTRADA = 'entrada', 'Entrada'
+    SAIDA = 'saida', 'Saída'
+
+
+class StockMovement(models.Model):
+    product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='movements')
+    supplier = models.ForeignKey(Supplier, on_delete=models.CASCADE, related_name='stock_movements')
+    movement_type = models.CharField(max_length=10, choices=StockMovementType.choices)
+    quantity = models.IntegerField()
+    unit_price = models.DecimalField(max_digits=10, decimal_places=2)
+    date = models.DateTimeField(auto_now_add=True)
+    note = models.CharField(max_length=255, blank=True, null=True)
+
+    class Meta:
+        verbose_name = 'Movimentação de Estoque'
+        verbose_name_plural = 'Movimentações de Estoque'
+        ordering = ['-date']
+
+    def __str__(self):
+        return f'{self.get_movement_type_display()} - {self.product.name} ({self.quantity})'
+

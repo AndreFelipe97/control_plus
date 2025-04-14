@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Category, Product
+from .models import Category, Product, Supplier, StockMovement
 
 
 @admin.register(Category)
@@ -17,4 +17,31 @@ class ProductsAdmin(admin.ModelAdmin):
         'unit_measurement',
         'barcode',
         'current_stock'
+    )
+
+
+@admin.register(Supplier)
+class SuppliersAdmin(admin.ModelAdmin):
+    list_display = (
+        'name',
+        'cnpj',
+        'phone',
+        'email',
+        'address',
+        'city',
+        'state',
+        'created_at',
+    )
+
+
+@admin.register(StockMovement)
+class StockMovementAdmin(admin.ModelAdmin):
+    list_display = (
+        'product',
+        'supplier',
+        'movement_type',
+        'quantity',
+        'unit_price',
+        'date',
+        'note',
     )
