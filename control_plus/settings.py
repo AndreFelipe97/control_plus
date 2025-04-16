@@ -43,8 +43,10 @@ INSTALLED_APPS = [
     #LIBS
     'django_filters',
     'rest_framework',
+    'rest_framework.authtoken',
 
     # APPS
+    'accounts',
     'products',
     'sales',
     'dashboard'
@@ -86,6 +88,9 @@ WSGI_APPLICATION = 'control_plus.wsgi.application'
 DATABASES = {
     'default': dj_database_url.config(default=config('DATABASE_URL'))
 }
+
+
+AUTH_USER_MODEL = 'accounts.CustomUser'
 
 
 # Password validation
@@ -130,11 +135,12 @@ MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 #DRF
 REST_FRAMEWORK = {
     'DEFAULT_FILTER_BACKENDS': ['django_filters.rest_framework.DjangoFilterBackend'],
-    'DAFAULT_AUTHENTICATION_CLASSES': (
-        'rest_framework.authentication.SessionAuthentication',
+    'DEFAULT_AUTHENTICATION_CLASSES': (
+        # 'rest_framework.authentication.SessionAuthentication',
+        'rest_framework.authentication.TokenAuthentication',
     ),
     'DEFAULT_PERMISSION_CLASSES': (
-        'rest_framework.permissions.IsAuthenticatedOrReadOnly'
+        'rest_framework.permissions.IsAuthenticated',
     )
 }
 
