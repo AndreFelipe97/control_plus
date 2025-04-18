@@ -1,12 +1,13 @@
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
-from sales.models import Sale
+from sales.models import Sale, SaleItem
 from products.models import Product
-from django.db.models import Sum
 from django.db.models.functions import TruncMonth, TruncDay
 from django.utils import timezone
 from datetime import timedelta
+from django.utils.timezone import now
+from django.db.models import Sum, F, DecimalField, ExpressionWrapper
 
 class DashboarSalesSummaryView(APIView):
     permission_classes = [IsAuthenticated]
@@ -83,4 +84,95 @@ class DashboarProductsSummaryView(APIView):
         return Response({
             'total_products': total_products,
             'products': product_data
+        })
+
+
+class Expense:
+    pass
+
+
+class ExpenseSummaryView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        today = now().date()
+        last_30_days = today - timedelta(days=30)
+        one_year_ago = today.replace(day=1) - timedelta(days=365)
+
+        # Total dos últimos 30 dias
+        total_last_30_days = Expense.objects.filter(
+            user=request.user,
+            date__gte=last_30_days
+        ).aggregate(total=Sum('value'))['total'] or 0
+
+        # Totais por categoria dos últimos 30 dias
+        category_summary = Expense.objects.filter(
+            user=request.user,
+            date__gte=last_30_days
+        ).values('category__name').annotate(
+            total=Sum('value')
+        ).order_by('-total')
+
+        # Totais mensais dos últimos 12 meses
+        monthly_summary_qs = Expense.objects.filter(
+            user=request.user,
+            date__gte=one_year_ago
+        ).annotate(
+            month=TruncMonth('date')
+        ).values('month').annotate(
+            total=Sum('value')
+        ).order_by('month')
+
+        monthly_summary = [
+            {
+                'month': entry['month'].strftime('%Y-%m'),
+                'total': entry['total']
+            }
+            for entry in monthly_summary_qs
+        ]
+
+        return Response({
+            'total_last_30_days': total_last_30_days,
+            'by_category_last_30_days': category_summary,
+            'monthly_summary_last_12_months': monthly_summary
+        })
+    
+
+class SalesAndStockReportView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        # Filtros opcionais
+        start_date = request.GET.get('start_date')
+        end_date = request.GET.get('end_date')
+
+        if not start_date or not end_date:
+            end_date = now().date()
+            start_date = end_date - timedelta(days=30)  # padrão: últimos 30 dias
+
+        # Itens vendidos no período
+        items = SaleItem.objects.filter(
+            sale__date__range=[start_date, end_date]
+        ).select_related('product')
+
+        sales_summary = items.values(
+            'product__name'
+        ).annotate(
+            total_quantity=Sum('quantity'),
+            total_revenue=Sum(ExpressionWrapper(F('quantity') * F('unit_price'), output_field=DecimalField())),
+        ).order_by('-total_quantity')
+
+        # Estoque atual
+        stock_summary = Product.objects.all().values(
+            'name',
+            'current_stock'
+        ).order_by('current_stock')
+
+        return Response({
+            'period': {
+                'start_date': str(start_date),
+                'end_date': str(end_date)
+            },
+            'sales_summary': list(sales_summary),
+            'stock_summary': list(stock_summary)
         })

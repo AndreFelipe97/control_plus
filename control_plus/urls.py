@@ -18,12 +18,18 @@ from django.contrib import admin
 from django.urls import path, include
 from products.urls import router as products_router
 from sales.urls import router as sales_router
+from expenses.urls import router as expenses_router
+
+api_v1_patterns = [
+    path('', include(products_router.urls)),
+    path('', include(sales_router.urls)),
+    path('', include(expenses_router.urls)),
+    path('', include('dashboard.urls')),
+    path('', include('accounts.urls')),
+]
 
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('auth/', include('rest_framework.urls')),
-    path('api/v1/', include(products_router.urls)),
-    path('api/v1/', include(sales_router.urls)),
-    path('api/v1/', include('dashboard.urls')),
-    path('api/v1/accounts/', include('accounts.urls')),
+    path('api/v1/', include(api_v1_patterns)),
 ]
