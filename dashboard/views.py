@@ -136,7 +136,33 @@ class ExpenseSummaryView(APIView):
             'by_category_last_30_days': category_summary,
             'monthly_summary_last_12_months': monthly_summary
         })
-    
+
+
+class FinancialReportAPIView(APIView):
+    def get(self, request):
+        hoje = timezone.now().date()
+        primeiro_dia = hoje.replace(day=1)
+        ano_atual = hoje.year
+
+        # Total de vendas no mês atual
+        vendas = Sale.objects.filter(data__gte=primeiro_dia).aggregate(total=Sum('valor'))['total'] or 0
+
+        # Total de despesas no mês atual
+        despesas = Expense.objects.filter(data__gte=primeiro_dia).aggregate(total=Sum('valor'))['total'] or 0
+
+        # Lucro líquido
+        lucro_liquido = vendas - despesas
+
+        # Margem de lucro líquida (%)
+        margem_liquida = (lucro_liquido / vendas * 100) if vendas else 0
+
+        return Response({
+            'vendas': vendas,
+            'despesas': despesas,
+            'lucro_liquido': lucro_liquido,
+            'margem_liquida': round(margem_liquida, 2)
+        })
+
 
 class SalesAndStockReportView(APIView):
     permission_classes = [IsAuthenticated]
